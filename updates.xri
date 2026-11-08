@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xri version="1.0">
+   <description>
+      <p>NarrowbandProcessing: stretching and blending of narrowband Ha, OIII and SII line images into HOO, SHO and Foraxx colour images, with a live preview.</p>
+      <p>Copyright (C) 2026 Justin Pickens. Released under the GNU General Public License v3.</p>
+   </description>
+   <platform os="all" arch="noarch" version="1.8.9:2.9.9">
+      <package fileName="NarrowbandProcessing-1.0.zip" sha1="cd46066262109516e370a05714ade506d51fb6a3" type="script" releaseDate="20261107">
+         <title>NarrowbandProcessing 1.0</title>
+         <description>
+            <p>First public release.</p>
+            <p>Stretch: sky-based black points, line linking, neutral background, contrast and highlight protection.
+            Blend: Foraxx (dynamic) HOO / SHO, ratio colour, classic palettes and custom PixelMath, with saturation,
+            green reduction and Foraxx finishing. Live preview and a built-in guide (Help button).</p>
+            <p>After installing, restart PixInsight and open Script &gt; Utilities &gt; NarrowbandProcessing.</p>
+         </description>
+      </package>
+   </platform>
+</xri>
