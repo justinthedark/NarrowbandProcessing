@@ -32,7 +32,7 @@ The input images must be **linear** (not stretched yet) and registered to each o
 1. In PixInsight, open **Resources > Updates > Manage Repositories**.
 2. Click **Add** and enter:
    ```
-   https://raw.githubusercontent.com/YOUR-GITHUB-USERNAME/NarrowbandProcessing/main/
+   https://raw.githubusercontent.com/justinthedark/NarrowbandProcessing/main/
    ```
 3. Click **OK**, then **Resources > Updates > Check for Updates**, and install NarrowbandProcessing.
 4. Restart PixInsight when asked.
