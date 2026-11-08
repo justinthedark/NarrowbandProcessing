@@ -28,7 +28,7 @@ cat > updates.xri <<XRI
 <?xml version="1.0" encoding="UTF-8"?>
 <xri version="1.0">
    <description>
-      <p>NarrowbandProcessing: stretching and blending of narrowband Ha, OIII and SII line images into HOO, SHO and Foraxx colour images, with a live preview.</p>
+      <p>NarrowbandProcessing: stretching and blending of narrowband Ha, OIII and SII line images into HOO, SHO and Foraxx color images, with a live preview.</p>
       <p>Copyright (C) 2026 Justin Pickens. Released under the GNU General Public License v3.</p>
    </description>
    <platform os="all" arch="noarch" version="1.8.9:2.9.9">

@@ -1,8 +1,8 @@
 /******************************************************************************
- * NarrowbandProcessing.js - version 1.0 (November 2026)
+ * NarrowbandProcessing.js - version 1.1 (November 2026)
  *
  * Stretching and blending of narrowband line images (Ha, OIII and optional
- * SII) into colour images, with a live preview.
+ * SII) into color images, with a live preview.
  *
  * Stretch
  *  - Black point per line from the real sky (robust background and noise
@@ -14,8 +14,8 @@
  *    (arcsinh blend for bright cores such as M42).
  *
  * Blend
- *  - Foraxx (dynamic) HOO / SHO, ratio colour (with presets, automatic
- *    balance and colour smoothing), classic palettes with editable weights,
+ *  - Foraxx (dynamic) HOO / SHO, ratio color (with presets, automatic
+ *    balance and color smoothing), classic palettes with editable weights,
  *    and custom PixelMath.
  *  - Saturation, green reduction (SCNR-style) and Foraxx finishing (hue and
  *    saturation curves; curve settings from Paul Hancock's ForaxxPalette
@@ -26,10 +26,15 @@
  *
  * Version history
  *  0.1 - 0.5.3  Development versions (stretch engine, blending, Foraxx
- *               finishing, contrast, colour smoothing, live preview, reset,
+ *               finishing, contrast, color smoothing, live preview, reset,
  *               highlight protection, green reduction, help guide).
  *  1.0          First public release. Help guide opens at the top;
  *               packaged as a PixInsight update repository.
+ *  1.1          Sharp preview computed at the panel's real screen
+ *               resolution and recomputed on resize; Zoom Fit / 100% (1:1)
+ *               with double-click and drag to pan; Quality Sharp / Balanced
+ *               / Fast. American spelling (color, center, gray); process
+ *               icons saved by 1.0 still load.
  *
  * Copyright (C) 2026 Justin Pickens
  *
@@ -49,7 +54,7 @@
  *****************************************************************************/
 
 #feature-id NarrowbandProcessing : Utilities > NarrowbandProcessing
-#feature-info Stretching and blending of narrowband Ha / OIII / SII line images into HOO, SHO and Foraxx colour images, with a live preview.<br/>Copyright &copy; 2026 Justin Pickens. GPL v3.
+#feature-info Stretching and blending of narrowband Ha / OIII / SII line images into HOO, SHO and Foraxx color images, with a live preview.<br/>Copyright &copy; 2026 Justin Pickens. GPL v3.
 
 #include <pjsr/DataType.jsh>
 #include <pjsr/FrameStyle.jsh>
@@ -62,7 +67,7 @@
 #include <pjsr/StdCursor.jsh>
 #include <pjsr/UndoFlag.jsh>
 
-#define VERSION "1.0"
+#define VERSION "1.1"
 #define TITLE "NarrowbandProcessing"
 
 // Line indices
@@ -677,7 +682,7 @@ function stretchLines(settings, opts)
    if (!opts.quiet)
    {
       logSettings(settings);
-      Console.noteln("Analysing lines");
+      Console.noteln("Analyzing lines");
    }
    var info = stretchParameters(analyzeLines(lines, settings), settings);
 
@@ -719,17 +724,17 @@ function stretchLines(settings, opts)
 #define BLEND_PALETTE 2
 #define BLEND_CUSTOM 3
 
-var BLEND_NAMES = ["Foraxx (dynamic)", "Ratio colour", "Classic palette", "Custom PixelMath"];
+var BLEND_NAMES = ["Foraxx (dynamic)", "Ratio color", "Classic palette", "Custom PixelMath"];
 
-// Ratio colour presets: colour for Ha-dominant and OIII-dominant signal
+// Ratio color presets: color for Ha-dominant and OIII-dominant signal
 var RATIO_PRESETS = [
    { name: "Gold + blue core", ha: [1.00, 0.70, 0.28], oiii: [0.30, 0.62, 1.00] },
    { name: "Copper + teal",    ha: [1.00, 0.48, 0.22], oiii: [0.20, 0.78, 0.80] },
    { name: "Red + cyan",       ha: [1.00, 0.22, 0.16], oiii: [0.25, 0.90, 1.00] },
    { name: "Amber + blue",     ha: [1.00, 0.60, 0.10], oiii: [0.15, 0.45, 1.00] }
 ];
-// SII colour in ratio mode (red-orange)
-var RATIO_SII_COLOUR = [1.00, 0.30, 0.18];
+// SII color in ratio mode (red-orange)
+var RATIO_SII_COLOR = [1.00, 0.30, 0.18];
 
 // Classic palettes: rows R, G, B; columns H, O, S
 var PALETTES = [
@@ -758,12 +763,12 @@ function foraxxExpressions(H, O, S)
 }
 
 /*
- * Ratio colour: t = how OIII-dominated a pixel is (0 = Ha, 1 = OIII), centred
- * on the nebula's typical ratio and sharpened by "contrast". Colour blends from
- * the Ha colour to the OIII colour; SII (when present) pulls towards red-orange.
+ * Ratio color: t = how OIII-dominated a pixel is (0 = Ha, 1 = OIII), centered
+ * on the nebula's typical ratio and sharpened by "contrast". Color blends from
+ * the Ha color to the OIII color; SII (when present) pulls toward red-orange.
  * Brightness is the brightest line, so structure from every line is kept.
  */
-// cH, cO, cS: images the colour is computed from (smoothed copies when colour
+// cH, cO, cS: images the color is computed from (smoothed copies when color
 // smoothing is on); H, O, S: full-resolution images for brightness
 function ratioExpressions(H, O, S, settings, center, cH, cO, cS)
 {
@@ -777,14 +782,14 @@ function ratioExpressions(H, O, S, settings, center, cH, cO, cS)
    if (S != null)
       u = "min(max(" + fmt(settings.siiStrength) + " * " + cS + " / (" + cH + " + " + cS + " + " + eps + "), 0), 1)";
    var L = S != null ? "max(" + H + ", " + O + ", " + S + ")" : "max(" + H + ", " + O + ")";
-   // The tint colours are darker than white, so brightness is scaled back up
+   // The tint colors are darker than white, so brightness is scaled back up
    L = "(" + fmt(settings.ratioBrightness) + " * " + L + ")";
 
    function channel(k)
    {
       var col = "(" + fmt(preset.ha[k]) + " * " + inv(t) + " + " + fmt(preset.oiii[k]) + " * " + t + ")";
       if (u != null)
-         col = "(" + col + " * " + inv(u) + " + " + fmt(RATIO_SII_COLOUR[k]) + " * " + u + ")";
+         col = "(" + col + " * " + inv(u) + " + " + fmt(RATIO_SII_COLOR[k]) + " * " + u + ")";
       return "(" + L + " * " + col + ")";
    }
    return { R: channel(0), G: channel(1), B: channel(2) };
@@ -820,7 +825,7 @@ function substituteSymbols(expr, H, O, S)
    });
 }
 
-// Typical OIII/(Ha+OIII) ratio over the brighter half of the nebula (auto balance centre)
+// Typical OIII/(Ha+OIII) ratio over the brighter half of the nebula (auto balance center)
 function typicalRatio(hView, oView)
 {
    var hi = hView.image, oi = oView.image;
@@ -935,16 +940,17 @@ function pixelMathRGB(referenceView, e, newId, hidden)
    return View.viewById(newId);
 }
 
-function blendExpressions(settings, ids, refViews, quiet)
+function blendExpressions(settings, ids, refViews, quiet, fixedCenter)
 {
    var H = ids[L_HA], O = ids[L_OIII], S = ids[L_SII] || null;
    var e;
    switch (settings.blendMode)
    {
    case BLEND_RATIO:
-      var center = settings.ratioAutoCenter ? typicalRatio(refViews[L_HA], refViews[L_OIII]) : settings.ratioCenter;
+      var center = (fixedCenter != null && fixedCenter !== undefined) ? fixedCenter :
+                   (settings.ratioAutoCenter ? typicalRatio(refViews[L_HA], refViews[L_OIII]) : settings.ratioCenter);
       if (!quiet)
-         Console.writeln(format("  ratio colour: centre %.3f%s, balance %d, contrast %.1f",
+         Console.writeln(format("  ratio color: center %.3f%s, balance %d, contrast %.1f",
                                 center, settings.ratioAutoCenter ? " (auto)" : "", Math.round(settings.ratioBalance), settings.ratioContrast));
       settings.lastRatioCenter = center;
       var c = settings.smoothIds || [];
@@ -974,8 +980,8 @@ function blendExpressions(settings, ids, refViews, quiet)
  * Paul Hancock's ForaxxPalette (2023); they are applied here with PixInsight's
  * own CurvesTransformation and ColorSaturation processes.
  *
- *  1. Hue curve pushing reds towards orange-gold and blues towards deeper blue,
- *     plus a saturation curve lifting mid-saturation colours.
+ *  1. Hue curve pushing reds toward orange-gold and blues toward deeper blue,
+ *     plus a saturation curve lifting mid-saturation colors.
  *  2. A second, smaller hue shift.
  *  3. Saturation boosted around gold/orange and blue only, applied twice.
  */
@@ -1026,7 +1032,8 @@ function closeSmoothed(settings)
  * opts (optional):
  *    hidden:      create a hidden temporary image (preview)
  *    quiet:       no console report
- *    smoothScale: divide the colour smoothing radius by this (downsampled preview)
+ *    smoothScale: divide the color smoothing radius by this (downsampled preview)
+ *    center:      ratio color center to use instead of measuring it (zoomed preview crop)
  */
 function blendLines(settings, stretched, opts)
 {
@@ -1041,13 +1048,13 @@ function blendLines(settings, stretched, opts)
    var palette = mode == BLEND_FORAXX ? (ids[L_SII] ? "SHO" : "HOO") : "";
    if (!opts.quiet)
       Console.noteln("Blending: ", BLEND_NAMES[mode], palette ? " " + palette : "");
-   // Colour smoothing (ratio mode): colour from blurred copies, brightness stays sharp
+   // Color smoothing (ratio mode): color from blurred copies, brightness stays sharp
    settings.smoothIds = [];
-   if (mode == BLEND_RATIO && settings.colourSmoothing > 0)
+   if (mode == BLEND_RATIO && settings.colorSmoothing > 0)
    {
-      var radius = Math.max(0.3, settings.colourSmoothing / (opts.smoothScale || 1));
+      var radius = Math.max(0.3, settings.colorSmoothing / (opts.smoothScale || 1));
       if (!opts.quiet)
-         Console.writeln(format("  colour smoothing: %.1f px", settings.colourSmoothing));
+         Console.writeln(format("  color smoothing: %.1f px", settings.colorSmoothing));
       for (var li in ids)
       {
          if (!ids[li]) continue;
@@ -1066,7 +1073,7 @@ function blendLines(settings, stretched, opts)
    var e;
    try
    {
-      e = blendExpressions(settings, ids, views, opts.quiet);
+      e = blendExpressions(settings, ids, views, opts.quiet, opts.center);
    }
    catch (err)
    {
@@ -1078,7 +1085,7 @@ function blendLines(settings, stretched, opts)
    var out = pixelMathRGB(views[L_HA], e, id, opts.hidden);
    closeSmoothed(settings);
    if (!isValidView(out))
-      throw new Error("Could not create the colour image " + id + ".");
+      throw new Error("Could not create the color image " + id + ".");
    if (!opts.hidden)
       copyAstrometricSolution(isValidView(settings.ha) ? settings.ha : null, id);
    if (settings.foraxxFinishing)
@@ -1095,12 +1102,21 @@ function blendLines(settings, stretched, opts)
 /*
  * PREVIEW ENGINE
  *
- * Downsampled copies of the inputs (about PREVIEW_SIZE pixels across) go
- * through exactly the same stretch and blend as Apply, using black points and
- * gains measured on the full-resolution inputs. All intermediate images are
- * hidden and removed again.
+ * The preview goes through exactly the same stretch and blend as Apply, using
+ * black points and gains measured on the full-resolution inputs. All
+ * intermediate images are hidden and removed again.
+ *
+ *  - Fit: copies of the inputs reduced to the preview area's real (physical)
+ *    pixel size, so the preview stays sharp on large and HiDPI screens.
+ *  - 100% (1:1): a crop of the full-resolution inputs the size of the
+ *    preview area, around a chosen point.
  */
-#define PREVIEW_SIZE 640
+#define PREVIEW_SIZE 640       // minimum preview panel size (logical pixels)
+#define OVERVIEW_SIZE 800
+
+// Preview quality: fraction of the screen resolution that is computed
+var PREVIEW_QUALITY = [1.0, 0.7, 0.5];
+var PREVIEW_QUALITY_NAMES = ["Sharp", "Balanced", "Fast"];
 
 #define SHOW_BLEND 0
 #define SHOW_HA 1
@@ -1114,72 +1130,168 @@ function closeById(id)
    if (isValidWindow(w)) w.forceClose();
 }
 
+function inputsKey(lines)
+{
+   var key = "";
+   for (var i = 0; i < lines.length; ++i)
+      key += lines[i].line + ":" + lines[i].view.id + ":" + lines[i].view.image.width + "x" + lines[i].view.image.height + ";";
+   return key;
+}
+
+// Hidden copies of the lines reduced by an integer factor: { line: view }, plus their ids
+function reducedCopies(lines, factor, tag)
+{
+   var out = { views: {}, ids: [] };
+   for (var i = 0; i < lines.length; ++i)
+   {
+      var id = uniqueId("nbp_" + tag + "_" + LINE_NAMES[lines[i].line]);
+      var v = pixelMathNew(lines[i].view, lines[i].view.id, id, true);
+      if (factor > 1)
+      {
+         var R = new IntegerResample;
+         R.zoomFactor = -factor;
+         R.downsamplingMode = IntegerResample.prototype.Average;
+         R.executeOn(v, false);
+      }
+      out.views[lines[i].line] = v;
+      out.ids.push(id);
+   }
+   return out;
+}
+
+// Hidden full-resolution crops of the lines: { line: view }, plus their ids
+function cropCopies(lines, rect)
+{
+   var out = { views: {}, ids: [] };
+   var w = rect.x1 - rect.x0, h = rect.y1 - rect.y0;
+   var buf = new Float32Array(w * h);
+   for (var i = 0; i < lines.length; ++i)
+   {
+      var id = uniqueId("nbp_crop_" + LINE_NAMES[lines[i].line]);
+      var win = new ImageWindow(w, h, 1, 32, true, false, id);
+      var v = win.mainView;
+      lines[i].view.image.getSamples(buf, rect, 0);
+      v.beginProcess(UndoFlag_NoSwapFile);
+      v.image.setSamples(buf, new Rect(0, 0, w, h), 0);
+      v.endProcess();
+      out.views[lines[i].line] = v;
+      out.ids.push(win.mainView.id);
+   }
+   return out;
+}
+
 function PreviewEngine()
 {
-   this.sources = null;     // { line: view } downsampled copies
-   this.sourceIds = [];
+   this.fit = null;         // { views, ids, factor, key }
+   this.overview = null;    // small copies for the ratio color center
+   this.centerCache = { key: "", value: 0.4 };
    this.factor = 1;
-   this.key = "";
+
+   this.closeSet = function (set)
+   {
+      if (set == null) return;
+      for (var i = 0; i < set.ids.length; ++i)
+         closeById(set.ids[i]);
+   };
 
    this.close = function ()
    {
-      for (var i = 0; i < this.sourceIds.length; ++i)
-         closeById(this.sourceIds[i]);
-      this.sourceIds = [];
-      this.sources = null;
-      this.key = "";
+      this.closeSet(this.fit);
+      this.closeSet(this.overview);
+      this.fit = null;
+      this.overview = null;
+      this.centerCache = { key: "", value: 0.4 };
    };
 
-   // (Re)create the downsampled sources when the inputs change
-   this.prepare = function (settings)
+   // Fit sources for a preview area of targetW x targetH physical pixels
+   this.fitSources = function (lines, targetW, targetH)
    {
-      var lines = inputLines(settings);
-      var key = "";
-      for (var i = 0; i < lines.length; ++i)
-         key += lines[i].line + ":" + lines[i].view.id + ":" + lines[i].view.image.width + "x" + lines[i].view.image.height + ";";
-      if (key == this.key && this.sources != null)
-         return;
-      this.close();
       var img = lines[0].view.image;
-      this.factor = Math.max(1, Math.ceil(Math.max(img.width, img.height) / PREVIEW_SIZE));
-      this.sources = {};
-      for (i = 0; i < lines.length; ++i)
+      // Factor rounded down: computed at or above screen resolution, then scaled down smoothly when drawn
+      var factor = Math.max(1, Math.floor(Math.max(img.width / targetW, img.height / targetH)));
+      var key = inputsKey(lines) + "f" + factor;
+      if (this.fit == null || this.fit.key != key)
       {
-         var id = uniqueId("nbp_src_" + LINE_NAMES[lines[i].line]);
-         var v = pixelMathNew(lines[i].view, lines[i].view.id, id, true);
-         if (this.factor > 1)
-         {
-            var R = new IntegerResample;
-            R.zoomFactor = -this.factor;
-            R.downsamplingMode = IntegerResample.prototype.Average;
-            R.executeOn(v, false);
-         }
-         this.sources[lines[i].line] = v;
-         this.sourceIds.push(id);
+         this.closeSet(this.fit);
+         this.fit = reducedCopies(lines, factor, "fit");
+         this.fit.key = key;
+         this.fit.factor = factor;
       }
-      this.key = key;
+      this.factor = factor;
+      return this.fit.views;
+   };
+
+   // Ratio color center of the whole image, from a small overview (cached per stretch settings)
+   this.ratioCenter = function (settings, lines)
+   {
+      var img = lines[0].view.image;
+      var factor = Math.max(1, Math.ceil(Math.max(img.width, img.height) / OVERVIEW_SIZE));
+      var okey = inputsKey(lines) + "o" + factor;
+      if (this.overview == null || this.overview.key != okey)
+      {
+         this.closeSet(this.overview);
+         this.overview = reducedCopies(lines, factor, "ovw");
+         this.overview.key = okey;
+         this.centerCache.key = "";
+      }
+      var skey = okey + [settings.shadowClip, settings.targetMedian, settings.link, settings.contrast,
+                         settings.highlightProtection, settings.neutralBackground].join(",");
+      if (this.centerCache.key != skey)
+      {
+         var st = stretchLines(settings, { sources: this.overview.views, hidden: true, quiet: true });
+         var v = {};
+         for (var i = 0; i < st.length; ++i) v[st[i].line] = View.viewById(st[i].id);
+         this.centerCache.value = typicalRatio(v[L_HA], v[L_OIII]);
+         this.centerCache.key = skey;
+         for (i = 0; i < st.length; ++i) closeById(st[i].id);
+      }
+      return this.centerCache.value;
    };
 
    /*
-    * Runs stretch (+ blend) on the downsampled sources. Returns
-    * { id, temp: [ids to close afterwards] } for the image to display.
+    * Runs stretch (+ blend) for the preview. Returns { id, temp: [ids to close
+    * afterwards], info } for the image to display.
+    *   targetW, targetH: preview area in physical pixels
+    *   zoom: 0 = fit, 1 = 100% crop around center ({ x, y } in image pixels)
     */
-   this.compute = function (settings, show)
+   this.compute = function (settings, show, targetW, targetH, zoom, center)
    {
-      this.prepare(settings);
-      var stretched = stretchLines(settings, { sources: this.sources, hidden: true, quiet: true });
-      var temp = [];
+      var lines = inputLines(settings);
+      var img = lines[0].view.image;
+      targetW = Math.max(64, Math.round(targetW || 640));
+      targetH = Math.max(64, Math.round(targetH || 460));
+      var sources, info, temp = [], fixedCenter = null, scale = 1;
+      if (zoom == 1)
+      {
+         var cx = center ? center.x : img.width / 2, cy = center ? center.y : img.height / 2;
+         var cw = Math.min(img.width, targetW), ch = Math.min(img.height, targetH);
+         var x0 = Math.round(Math.min(Math.max(cx - cw / 2, 0), img.width - cw));
+         var y0 = Math.round(Math.min(Math.max(cy - ch / 2, 0), img.height - ch));
+         var crop = cropCopies(lines, new Rect(x0, y0, x0 + cw, y0 + ch));
+         sources = crop.views;
+         temp = temp.concat(crop.ids);
+         info = { zoom: 1, x0: x0, y0: y0, w: cw, h: ch, center: { x: x0 + cw / 2, y: y0 + ch / 2 } };
+         if (show == SHOW_BLEND && settings.blendMode == BLEND_RATIO)
+            fixedCenter = this.ratioCenter(settings, lines);
+      }
+      else
+      {
+         sources = this.fitSources(lines, targetW, targetH);
+         scale = this.factor;
+         info = { zoom: 0, factor: this.factor };
+      }
+      var stretched = stretchLines(settings, { sources: sources, hidden: true, quiet: true });
       for (var i = 0; i < stretched.length; ++i) temp.push(stretched[i].id);
       if (show == SHOW_BLEND)
       {
-         var rgb = blendLines(settings, stretched, { hidden: true, quiet: true, smoothScale: this.factor });
+         var rgb = blendLines(settings, stretched, { hidden: true, quiet: true, smoothScale: scale, center: fixedCenter });
          temp.push(rgb);
-         return { id: rgb, temp: temp };
+         return { id: rgb, temp: temp, info: info };
       }
       var want = show == SHOW_HA ? L_HA : (show == SHOW_OIII ? L_OIII : L_SII);
       for (i = 0; i < stretched.length; ++i)
          if (stretched[i].line == want)
-            return { id: stretched[i].id, temp: temp };
+            return { id: stretched[i].id, temp: temp, info: info };
       for (i = 0; i < temp.length; ++i) closeById(temp[i]);
       throw new Error("No " + LINE_NAMES[want] + " image selected.");
    };
@@ -1257,7 +1369,7 @@ function NarrowbandStart(settings)
 /*
  * Sensible starting values when the blend mode changes:
  *  Foraxx and classic palettes are designed around equally stretched lines
- *  (link 0%); ratio colour measures the line ratio itself, so linking mostly
+ *  (link 0%); ratio color measures the line ratio itself, so linking mostly
  *  decides how much faint-line noise is lifted (75%).
  *  Foraxx finishing is on for Foraxx, off otherwise.
  */
@@ -1274,7 +1386,7 @@ function applyModeDefaults(settings)
 
 /*
  * Reset sliders: every slider back to its default for the current blend mode.
- * Keeps the input images, the mode, the colour preset, the selected palette
+ * Keeps the input images, the mode, the color preset, the selected palette
  * (its weights are reset to that palette) and custom expressions.
  */
 function resetSliders(settings)
@@ -1282,7 +1394,7 @@ function resetSliders(settings)
    var d = new parametersPrototype();
    d.setDefaults();
    var keys = ["shadowClip", "targetMedian", "contrast", "highlightProtection", "neutralBackground", "ratioBalance", "ratioContrast",
-               "siiStrength", "ratioBrightness", "colourSmoothing", "saturation", "greenReduction"];
+               "siiStrength", "ratioBrightness", "colorSmoothing", "saturation", "greenReduction"];
    for (var i = 0; i < keys.length; ++i)
       settings[keys[i]] = d[keys[i]];
    var pi = (settings.paletteIndex >= 0 && settings.paletteIndex < PALETTES.length) ? settings.paletteIndex : 0;
@@ -1325,7 +1437,7 @@ function parametersPrototype()
       this.greenReduction = 0;
       this.foraxxFinishing = true;
       this.ratioBrightness = 1.4;
-      this.colourSmoothing = 2.0;
+      this.colorSmoothing = 2.0;
       this.keepMono = false;
    };
 
@@ -1359,7 +1471,7 @@ function parametersPrototype()
       Parameters.set("greenReduction", this.greenReduction);
       Parameters.set("foraxxFinishing", this.foraxxFinishing);
       Parameters.set("ratioBrightness", this.ratioBrightness);
-      Parameters.set("colourSmoothing", this.colourSmoothing);
+      Parameters.set("colorSmoothing", this.colorSmoothing);
       Parameters.set("keepMono", this.keepMono);
    };
 
@@ -1392,7 +1504,8 @@ function parametersPrototype()
       if (Parameters.has("greenReduction")) this.greenReduction = Parameters.getReal("greenReduction");
       if (Parameters.has("foraxxFinishing")) this.foraxxFinishing = Parameters.getBoolean("foraxxFinishing");
       if (Parameters.has("ratioBrightness")) this.ratioBrightness = Parameters.getReal("ratioBrightness");
-      if (Parameters.has("colourSmoothing")) this.colourSmoothing = Parameters.getReal("colourSmoothing");
+      if (Parameters.has("colorSmoothing")) this.colorSmoothing = Parameters.getReal("colorSmoothing");
+      else if (Parameters.has("colourSmoothing")) this.colorSmoothing = Parameters.getReal("colourSmoothing");   // 1.0 icons
       if (Parameters.has("keepMono")) this.keepMono = Parameters.getBoolean("keepMono");
    };
 
@@ -1416,12 +1529,12 @@ data.setDefaults();
  */
 var GUIDE_HTML =
    "<h2>NarrowbandProcessing " + VERSION + " guide</h2>\n" +
-   "<p>NarrowbandProcessing turns <b>linear</b> narrowband line images (Ha, OIII and optionally SII) into a finished-looking colour image. It does two jobs in one go: it <b>stretches</b> each line (makes the faint nebula visible) and <b>blends</b> them into colour. The preview on the right shows the result at reduced size; <b>Apply</b> creates the full-size image.</p>\n" +
+   "<p>NarrowbandProcessing turns <b>linear</b> narrowband line images (Ha, OIII and optionally SII) into a finished-looking color image. It does two jobs in one go: it <b>stretches</b> each line (makes the faint nebula visible) and <b>blends</b> them into color. The preview on the right shows the result at your screen's full resolution; <b>Apply</b> creates the full-size image.</p>\n" +
    "\n" +
    "<h3>Quick start</h3>\n" +
    "<ol>\n" +
    "<li><b>Get your line images.</b><br/>\n" +
-   "&bull; <i>One-shot colour camera with a dual-band filter</i> (L-eNhance, L-eXtreme, ...): run <b>DBXtract</b> first. It creates <b>_HA</b> and <b>_OIII</b> (and <b>_SII</b> with an SII filter).<br/>\n" +
+   "&bull; <i>One-shot color camera with a dual-band filter</i> (L-eNhance, L-eXtreme, ...): run <b>DBXtract</b> first. It creates <b>_HA</b> and <b>_OIII</b> (and <b>_SII</b> with an SII filter).<br/>\n" +
    "&bull; <i>Mono camera with separate filters</i>: use your stacked Ha, OIII and SII masters directly. Skip DBXtract.<br/>\n" +
    "The images must be <b>linear</b> (not stretched yet) and the same size (registered to each other).</li>\n" +
    "<li><b>Open NarrowbandProcessing.</b> It picks up _HA, _OIII and _SII automatically; otherwise choose them at the top.</li>\n" +
@@ -1436,48 +1549,50 @@ var GUIDE_HTML =
    "<p><b>Link lines</b> - how the fainter lines (OIII, SII) are stretched compared with Ha.<br/>\n" +
    "&bull; <b>0%</b>: every line is brightened to the same level. Needed for Foraxx and classic palettes, which expect balanced lines.<br/>\n" +
    "&bull; <b>100%</b>: all lines share one stretch, so faint OIII stays faint. Cleaner shadows, less noise.<br/>\n" +
-   "&bull; In between: faint lines catch up partway. Ratio colour defaults to 75%.</p>\n" +
+   "&bull; In between: faint lines catch up partway. Ratio color defaults to 75%.</p>\n" +
    "<p><b>Contrast</b> - darker shadows and dust lanes, more punch in the mid-tones. The background and overall brightness stay put. 30-50 suits most targets.</p>\n" +
    "<p><b>Highlight protection</b> - keeps detail in very bright regions, such as the core of M42, instead of letting them turn white. Leave at 0 for most targets; use 50-80 for bright cores.</p>\n" +
-   "<p><b>Neutral background</b> - keeps the empty sky grey rather than tinted. Leave it on.</p>\n" +
+   "<p><b>Neutral background</b> - keeps the empty sky gray rather than tinted. Leave it on.</p>\n" +
    "\n" +
    "<h3>Blend modes</h3>\n" +
    "<p><b>Foraxx (dynamic)</b> - the popular Foraxx palette: gold where Ha dominates, blue where OIII dominates. HOO with Ha and OIII; SHO automatically when SII is selected. Use with Link 0% and Foraxx finishing on.</p>\n" +
-   "<p><b>Ratio colour</b> - colour comes from how much OIII there is compared with Ha, so every area gets a colour that reflects its chemistry.<br/>\n" +
-   "&bull; <b>Colours</b>: the colour pair, e.g. Gold + blue core.<br/>\n" +
-   "&bull; <b>Balance</b>: moves the gold/blue split. Negative = more gold, positive = more blue. 0 centres it on your image automatically.<br/>\n" +
+   "<p><b>Ratio color</b> - color comes from how much OIII there is compared with Ha, so every area gets a color that reflects its chemistry.<br/>\n" +
+   "&bull; <b>Colors</b>: the color pair, e.g. Gold + blue core.<br/>\n" +
+   "&bull; <b>Balance</b>: moves the gold/blue split. Negative = more gold, positive = more blue. 0 centers it on your image automatically.<br/>\n" +
    "&bull; <b>Contrast</b> (blend): how sharply gold changes into blue.<br/>\n" +
    "&bull; <b>SII strength</b>: how strongly SII adds red-orange (only with an SII image).<br/>\n" +
    "&bull; <b>Brightness</b>: overall brightness of this mode.<br/>\n" +
-   "&bull; <b>Colour smoothing</b>: removes colour speckle in faint areas without blurring detail. 2 px is a good default; raise it if faint areas look blotchy.</p>\n" +
+   "&bull; <b>Color smoothing</b>: removes color speckle in faint areas without blurring detail. 2 px is a good default; raise it if faint areas look blotchy.</p>\n" +
    "<p><b>Classic palette</b> - fixed mixes like HOO, SHO (Hubble palette) and HSO. The grid shows how much of each line goes into red, green and blue; you can edit it. Raw SHO is naturally very green, so use <b>Green reduction</b>.</p>\n" +
    "<p><b>Custom PixelMath</b> - type your own red, green and blue formulas using <b>H</b>, <b>O</b> and <b>S</b> (the stretched lines). Example: R = H, G = 0.5*H + 0.5*O, B = O.</p>\n" +
    "\n" +
    "<h3>Finishing controls</h3>\n" +
-   "<p><b>Saturation</b> - colour strength (1 = unchanged). Brightness is not affected.</p>\n" +
+   "<p><b>Saturation</b> - color strength (1 = unchanged). Brightness is not affected.</p>\n" +
    "<p><b>Green reduction</b> - removes excess green, like SCNR. Use 70-100% for SHO.</p>\n" +
-   "<p><b>Foraxx finishing</b> - the hue and saturation curves from the ForaxxPalette utility: reds pushed towards gold, blues deepened, gold and blue boosted. Works with any mode.</p>\n" +
+   "<p><b>Foraxx finishing</b> - the hue and saturation curves from the ForaxxPalette utility: reds pushed toward gold, blues deepened, gold and blue boosted. Works with any mode.</p>\n" +
    "<p><b>Reset all sliders</b> - puts every Stretch and Blend slider back to its default for the current mode. Your images and mode are kept.</p>\n" +
    "<p><b>Keep stretched mono lines</b> - also keeps the stretched _HA_s, _OIII_s and _SII_s images after Apply, for use in other tools.</p>\n" +
    "\n" +
    "<h3>Preview</h3>\n" +
-   "<p>The preview updates shortly after each change. <b>Show</b> switches between the blend and each stretched line on its own. Untick <b>Live update</b> to change several settings first, then click <b>Refresh</b>. The first update after opening takes a few seconds while the full images are measured.</p>\n" +
+   "<p>The preview updates shortly after each change and is computed at your screen's full resolution, so it stays sharp on large and high-resolution (Retina / 4K) screens. It is recomputed when you resize the window. <b>Show</b> switches between the blend and each stretched line on its own. Untick <b>Live update</b> to change several settings first, then click <b>Refresh</b>. The first update after opening takes a few seconds while the full images are measured.</p>\n" +
+   "<p><b>Zoom</b> - <b>Fit</b> shows the whole image; <b>100% (1:1)</b> shows real pixels, exactly as Apply will produce them. <b>Double-click</b> the preview to zoom to 100% at that point and double-click again to go back to Fit. At 100%, <b>drag</b> to pan.</p>\n" +
+   "<p><b>Quality</b> - <b>Sharp</b> (recommended) computes every screen pixel. <b>Balanced</b> (70%) and <b>Fast</b> (50%) compute fewer pixels and enlarge them, so they update faster on slow computers but look softer. Quality only affects the preview, never the result. The status line under the preview shows how long each update took.</p>\n" +
    "\n" +
    "<h3>Recipes</h3>\n" +
    "<p><b>Classic Foraxx look</b> - Mode Foraxx, Link 0%, Contrast 40, Foraxx finishing on.</p>\n" +
-   "<p><b>Gold + blue</b> - Mode Ratio colour, Colours Gold + blue core, Link 75%, Contrast 30-40, Colour smoothing 2, Saturation 1.2-1.4.</p>\n" +
+   "<p><b>Gold + blue</b> - Mode Ratio color, Colors Gold + blue core, Link 75%, Contrast 30-40, Color smoothing 2, Saturation 1.2-1.4.</p>\n" +
    "<p><b>Hubble palette (SHO)</b> - needs an SII image. Mode Classic palette, Palette SHO, Link 0%, Green reduction 80-100%, Saturation about 1.3. Or simply use Foraxx with SII selected.</p>\n" +
-   "<p><b>Very bright core (M42)</b> - any mode, Highlight protection 50-80. Afterwards, HDRMultiscaleTransform on the colour image can add extra core contrast.</p>\n" +
+   "<p><b>Very bright core (M42)</b> - any mode, Highlight protection 50-80. Afterwards, HDRMultiscaleTransform on the color image can add extra core contrast.</p>\n" +
    "\n" +
    "<h3>Troubleshooting</h3>\n" +
    "<p><b>Everything is green or cyan</b> - a palette that uses SII is selected but no SII image is (the preview shows a warning). Select SII or use HOO. With real SII, raw SHO is green by nature: use Green reduction.</p>\n" +
    "<p><b>Foraxx shows little or no blue</b> - set Link lines to 0%.</p>\n" +
    "<p><b>Shadows or dust lanes look blue</b> - raise Link lines, so OIII's background noise is not brightened as much.</p>\n" +
-   "<p><b>Background has a colour cast</b> - make sure Neutral background is ticked.</p>\n" +
-   "<p><b>Faint areas full of coloured speckle</b> (Ratio colour) - raise Colour smoothing.</p>\n" +
-   "<p><b>Image looks flat or grey</b> - raise Contrast, and for Foraxx make sure Foraxx finishing is on.</p>\n" +
+   "<p><b>Background has a color cast</b> - make sure Neutral background is ticked.</p>\n" +
+   "<p><b>Faint areas full of colored speckle</b> (Ratio color) - raise Color smoothing.</p>\n" +
+   "<p><b>Image looks flat or gray</b> - raise Contrast, and for Foraxx make sure Foraxx finishing is on.</p>\n" +
    "<p><b>Bright core is pure white</b> - raise Highlight protection. If it stays white, the core may be saturated in the data itself; only shorter exposures can recover it.</p>\n" +
-   "<p><b>Colours change a lot after gradient removal</b> - on nebulae that fill the whole frame, automatic gradient tools can remove real nebulosity (often the blue OIII haze). Skip gradient removal or use DBE with samples only in the darkest areas.</p>\n" +
+   "<p><b>Colors change a lot after gradient removal</b> - on nebulae that fill the whole frame, automatic gradient tools can remove real nebulosity (often the blue OIII haze). Skip gradient removal or use DBE with samples only in the darkest areas.</p>\n" +
    "<p><b>Nothing appears after Apply</b> - in full-screen mode new windows can be hidden behind the workspace; leave full screen or look in the window list.</p>\n" +
    "\n" +
    "<p><br/>NarrowbandProcessing " + VERSION + " by Justin Pickens, GPL v3. Foraxx finishing curve settings from Paul Hancock's ForaxxPalette utility.</p>\n";
@@ -1545,8 +1660,8 @@ function NarrowbandDialog()
    this.helpLabel.useRichText = true;
    this.helpLabel.text =
       "Stretches linear Ha, OIII and (optionally) SII images with a black point set from the real sky, then blends " +
-      "them into a colour image. <b>Link lines</b> controls how much fainter lines keep their true brightness " +
-      "relative to Ha. The preview uses the same settings at reduced size; <b>Apply</b> creates the full-size result.<br><br>" +
+      "them into a color image. <b>Link lines</b> controls how much fainter lines keep their true brightness " +
+      "relative to Ha. The preview uses the same settings (double-click it to zoom to 100%); <b>Apply</b> creates the full-size result.<br><br>" +
       "Justin Pickens - GPL v3";
 
    function makeLabel(text, parent)
@@ -1647,7 +1762,7 @@ function NarrowbandDialog()
    this.contrast_Control2 = numeric("Contrast:", 0, 100, 0, 100, data.contrast,
       "<p>S-curve applied identically to every line after the stretch, pivoting on the target median: " +
       "shadows and dust lanes get darker and mid-tones spread out, while the median and the background level " +
-      "stay put. More contrast in each line also gives the blend more colour to work with. 0 = off.</p>",
+      "stay put. More contrast in each line also gives the blend more color to work with. 0 = off.</p>",
       function (v) { data.contrast = v; });
    this.stretch_GroupBox.sizer.add(this.contrast_Control2);
 
@@ -1675,8 +1790,8 @@ function NarrowbandDialog()
       this.mode_Combo.addItem(BLEND_NAMES[bi]);
    this.mode_Combo.currentItem = data.blendMode;
    this.mode_Combo.toolTip = "<p><b>Foraxx (dynamic)</b> - the ForaxxPalette blend: HOO, or SHO when SII is selected.</p>" +
-      "<p><b>Ratio colour</b> - colour from how OIII-dominated each pixel is (Ha colour to OIII colour), " +
-      "brightness from the brightest line. SII pulls towards red-orange.</p>" +
+      "<p><b>Ratio color</b> - color from how OIII-dominated each pixel is (Ha color to OIII color), " +
+      "brightness from the brightest line. SII pulls toward red-orange.</p>" +
       "<p><b>Classic palette</b> - fixed channel mixes (HOO, SHO, HSO, ...) with editable weights.</p>" +
       "<p><b>Custom PixelMath</b> - your own R, G, B expressions using H, O and S.</p>";
    this.mode_Combo.onItemSelected = function (index)
@@ -1689,7 +1804,7 @@ function NarrowbandDialog()
       dlg.schedulePreview();
    };
 
-   // Ratio colour controls
+   // Ratio color controls
    this.ratio_Control = new Control(this);
    this.ratio_Control.sizer = new VerticalSizer;
    this.ratio_Control.sizer.spacing = 4;
@@ -1701,34 +1816,34 @@ function NarrowbandDialog()
    this.preset_Combo.onItemSelected = function (index) { data.ratioPreset = index; dlg.schedulePreview(); };
 
    this.balance_Control = numeric("Balance:", -100, 100, 0, 200, data.ratioBalance,
-      "<p>Shifts where colour turns from the Ha colour to the OIII colour. Positive values make more of the " +
-      "nebula take the OIII colour; negative values more of the Ha colour. 0 centres the change on the nebula's " +
+      "<p>Shifts where color turns from the Ha color to the OIII color. Positive values make more of the " +
+      "nebula take the OIII color; negative values more of the Ha color. 0 centers the change on the nebula's " +
       "typical OIII/Ha ratio (measured automatically).</p>",
       function (v) { data.ratioBalance = v; }, this.ratio_Control);
    this.contrast_Control = numeric("Contrast:", 0.5, 10.0, 1, 95, data.ratioContrast,
-      "<p>How sharply the colour changes with the OIII/Ha ratio. Low values give gentle gradients; " +
+      "<p>How sharply the color changes with the OIII/Ha ratio. Low values give gentle gradients; " +
       "high values separate Ha-dominated and OIII-dominated regions more strongly.</p>",
       function (v) { data.ratioContrast = v; }, this.ratio_Control);
    this.sii_Control = numeric("SII strength:", 0.0, 3.0, 2, 300, data.siiStrength,
-      "<p>How strongly SII pulls the colour towards red-orange (only with an SII image).</p>",
+      "<p>How strongly SII pulls the color toward red-orange (only with an SII image).</p>",
       function (v) { data.siiStrength = v; }, this.ratio_Control);
 
    this.brightness_Control = numeric("Brightness:", 0.5, 2.5, 2, 200, data.ratioBrightness,
-      "<p>Overall brightness of the ratio colour image. The tint colours are darker than white, so values above 1 " +
+      "<p>Overall brightness of the ratio color image. The tint colors are darker than white, so values above 1 " +
       "restore the brightness of the stretch.</p>",
       function (v) { data.ratioBrightness = v; }, this.ratio_Control);
 
-   this.ratio_Control.sizer.add(row([makeLabel("Colours:", this.ratio_Control), this.preset_Combo], false));
+   this.ratio_Control.sizer.add(row([makeLabel("Colors:", this.ratio_Control), this.preset_Combo], false));
    this.ratio_Control.sizer.add(this.balance_Control);
    this.ratio_Control.sizer.add(this.contrast_Control);
    this.ratio_Control.sizer.add(this.sii_Control);
    this.ratio_Control.sizer.add(this.brightness_Control);
 
-   this.smoothing_Control = numeric("Colour smoothing:", 0.0, 10.0, 1, 100, data.colourSmoothing,
-      "<p>Blur radius (pixels) used only for the colour, not the brightness. Colour in nebulae varies slowly, so " +
-      "smoothing the OIII/Ha ratio removes colour noise (blue and gold speckle in faint areas) without losing " +
+   this.smoothing_Control = numeric("Color smoothing:", 0.0, 10.0, 1, 100, data.colorSmoothing,
+      "<p>Blur radius (pixels) used only for the color, not the brightness. Color in nebulae varies slowly, so " +
+      "smoothing the OIII/Ha ratio removes color noise (blue and gold speckle in faint areas) without losing " +
       "detail, which comes from the full-resolution brightness. 0 = off.</p>",
-      function (v) { data.colourSmoothing = v; }, this.ratio_Control);
+      function (v) { data.colorSmoothing = v; }, this.ratio_Control);
    this.ratio_Control.sizer.add(this.smoothing_Control);
 
    // Palette controls
@@ -1804,7 +1919,7 @@ function NarrowbandDialog()
 
    // Shared finishing
    this.saturation_Control = numeric("Saturation:", 0.0, 3.0, 2, 300, data.saturation,
-      "<p>Colour saturation of the blended image (1 = unchanged), keeping brightness.</p>",
+      "<p>Color saturation of the blended image (1 = unchanged), keeping brightness.</p>",
       function (v) { data.saturation = v; });
 
    this.blend_GroupBox = new GroupBox(this);
@@ -1821,7 +1936,7 @@ function NarrowbandDialog()
    this.green_Control = numeric("Green reduction (%):", 0, 100, 0, 100, data.greenReduction,
       "<p>Removes green above the average of red and blue (like SCNR, average neutral). " +
       "Raw SHO is green-dominated because Ha, usually the strongest line, is mapped to green; " +
-      "reducing the green shifts it towards the gold-and-blue Hubble-palette look. 0 = off.</p>",
+      "reducing the green shifts it toward the gold-and-blue Hubble-palette look. 0 = off.</p>",
       function (v) { data.greenReduction = v; });
    this.blend_GroupBox.sizer.add(this.green_Control);
 
@@ -1829,14 +1944,14 @@ function NarrowbandDialog()
    this.finishing_CheckBox.text = "Foraxx finishing (hue and saturation curves)";
    this.finishing_CheckBox.checked = data.foraxxFinishing;
    this.finishing_CheckBox.toolTip = "<p>Applies the hue and saturation adjustments of the ForaxxPalette utility after " +
-      "blending: reds pushed towards gold, blues deepened, and saturation boosted around gold and blue. " +
+      "blending: reds pushed toward gold, blues deepened, and saturation boosted around gold and blue. " +
       "This is where most of the classic Foraxx gold-and-blue look comes from. Works with any blend mode.</p>" +
       "<p>Curve settings from Paul Hancock's ForaxxPalette utility.</p>";
    this.finishing_CheckBox.onCheck = function (checked) { data.foraxxFinishing = checked; dlg.schedulePreview(); };
    this.reset_Button = new PushButton(this);
    this.reset_Button.text = "Reset all sliders";
    this.reset_Button.toolTip = "<p>Puts every Stretch and Blend slider back to its default for the current blend mode " +
-      "(including Link lines and Foraxx finishing). Input images, mode, colour preset and custom expressions are kept.</p>";
+      "(including Link lines and Foraxx finishing). Input images, mode, color preset and custom expressions are kept.</p>";
    this.reset_Button.onClick = function ()
    {
       resetSliders(data);
@@ -1864,7 +1979,7 @@ function NarrowbandDialog()
       dlg.contrast_Control.setValue(data.ratioContrast);
       dlg.sii_Control.setValue(data.siiStrength);
       dlg.brightness_Control.setValue(data.ratioBrightness);
-      dlg.smoothing_Control.setValue(data.colourSmoothing);
+      dlg.smoothing_Control.setValue(data.colorSmoothing);
       dlg.saturation_Control.setValue(data.saturation);
       dlg.green_Control.setValue(data.greenReduction);
       dlg.finishing_CheckBox.checked = data.foraxxFinishing;
@@ -1936,26 +2051,49 @@ function NarrowbandDialog()
    this.previewMessage = "Preview will appear here.";
    this.previewShow = SHOW_BLEND;
    this.liveUpdate = true;
+   this.previewZoom = 0;            // 0 = fit, 1 = 100% (1:1)
+   this.previewQuality = 0;         // index into PREVIEW_QUALITY
+   this.previewCenter = null;       // 1:1 view center in image pixels
+   this.previewInfo = null;         // what the current bitmap shows
+   this.previewGeom = null;         // where it was drawn: { ox, oy, scale }
+   this.drag = null;                // { x, y, dx, dy } while panning at 1:1
 
    this.preview_Control = new Control(this);
    this.preview_Control.setScaledMinSize(PREVIEW_SIZE, Math.round(PREVIEW_SIZE * 0.72));
+   this.preview_Control.toolTip = "<p>Double-click to zoom to 100% at that point; double-click again to fit. " +
+      "At 100%, drag to pan.</p>";
    this.preview_Control.onPaint = function (x0, y0, x1, y1)
    {
       var g = new Graphics(this);
       g.fillRect(0, 0, this.width, this.height, new Brush(0xff1e1e1e));
       var bmp = dlg.previewBitmap;
+      dlg.previewGeom = null;
       if (bmp != null)
       {
-         var scale = Math.min(this.width / bmp.width, this.height / bmp.height);
-         var w = Math.max(1, Math.floor(bmp.width * scale)), h = Math.max(1, Math.floor(bmp.height * scale));
+         // Fit: scale down (never up) to the panel. 1:1: one image pixel per screen pixel.
+         var scale = (dlg.previewInfo && dlg.previewInfo.zoom == 1) ? 1 :
+                     Math.min(this.width / bmp.width, this.height / bmp.height);
+         var w = Math.max(1, Math.round(bmp.width * scale)), h = Math.max(1, Math.round(bmp.height * scale));
          var ox = Math.floor((this.width - w) / 2), oy = Math.floor((this.height - h) / 2);
-         try
+         if (dlg.drag != null)
          {
-            g.drawScaledBitmap(new Rect(ox, oy, ox + w, oy + h), bmp);
+            ox += dlg.drag.dx;
+            oy += dlg.drag.dy;
          }
-         catch (e)
+         dlg.previewGeom = { ox: ox, oy: oy, scale: scale };
+         try { g.smoothInterpolation = true; } catch (e0) {}
+         if (scale == 1)
+            g.drawBitmap(ox, oy, bmp);
+         else
          {
-            g.drawBitmap(ox, oy, bmp.scaledTo(w, h));
+            try
+            {
+               g.drawScaledBitmap(new Rect(ox, oy, ox + w, oy + h), bmp);
+            }
+            catch (e)
+            {
+               g.drawBitmap(ox, oy, bmp.scaledTo(w, h));
+            }
          }
       }
       if (dlg.previewMessage)
@@ -1966,11 +2104,99 @@ function NarrowbandDialog()
       g.end();
    };
 
+   // Recompute when the panel changes size, so the preview always matches the screen
+   this.preview_Control.onResize = function (wNew, hNew, wOld, hOld)
+   {
+      if (dlg.previewInfo != null)
+         dlg.schedulePreview(true);
+   };
+
+   // Panel point -> full-resolution image point, from the current bitmap
+   this.imagePointAt = function (x, y)
+   {
+      var info = dlg.previewInfo, geo = dlg.previewGeom;
+      if (info == null || geo == null)
+         return null;
+      var bx = (x - geo.ox) / geo.scale, by = (y - geo.oy) / geo.scale;
+      if (info.zoom == 1)
+         return { x: info.x0 + bx, y: info.y0 + by };
+      return { x: bx * info.factor, y: by * info.factor };
+   };
+
+   this.preview_Control.onMouseDoubleClick = function (x, y, buttonState, modifiers)
+   {
+      if (dlg.previewZoom == 0)
+      {
+         var p = dlg.imagePointAt(x, y);
+         if (p == null) return;
+         dlg.previewCenter = p;
+         dlg.setZoom(1);
+      }
+      else
+         dlg.setZoom(0);
+   };
+
+   this.preview_Control.onMousePress = function (x, y, button, buttonState, modifiers)
+   {
+      if (dlg.previewZoom == 1 && dlg.previewInfo != null && dlg.previewInfo.zoom == 1)
+         dlg.drag = { x: x, y: y, dx: 0, dy: 0 };
+   };
+
+   this.preview_Control.onMouseMove = function (x, y, buttonState, modifiers)
+   {
+      if (dlg.drag == null) return;
+      dlg.drag.dx = x - dlg.drag.x;
+      dlg.drag.dy = y - dlg.drag.y;
+      this.update();
+   };
+
+   this.preview_Control.onMouseRelease = function (x, y, button, buttonState, modifiers)
+   {
+      if (dlg.drag == null) return;
+      var d = dlg.drag;
+      dlg.drag = null;
+      if (Math.abs(d.dx) + Math.abs(d.dy) < 2) { this.update(); return; }
+      var c = dlg.previewInfo.center;
+      dlg.previewCenter = { x: c.x - d.dx, y: c.y - d.dy };
+      // Keep the moved bitmap on screen until the new crop is ready
+      dlg.updatePreview();
+   };
+
+   this.setZoom = function (zoom)
+   {
+      dlg.previewZoom = zoom;
+      dlg.drag = null;
+      if (dlg.zoom_Combo.currentItem != zoom)
+         dlg.zoom_Combo.currentItem = zoom;
+      dlg.quality_Combo.enabled = zoom == 0;
+      dlg.updatePreview();
+   };
+
    this.show_Combo = new ComboBox(this);
    for (var si = 0; si < SHOW_NAMES.length; ++si)
       this.show_Combo.addItem(SHOW_NAMES[si]);
    this.show_Combo.currentItem = this.previewShow;
    this.show_Combo.onItemSelected = function (index) { dlg.previewShow = index; dlg.schedulePreview(true); };
+
+   this.zoom_Combo = new ComboBox(this);
+   this.zoom_Combo.addItem("Fit");
+   this.zoom_Combo.addItem("100% (1:1)");
+   this.zoom_Combo.currentItem = 0;
+   this.zoom_Combo.toolTip = "<p><b>Fit</b> shows the whole image at your screen's full resolution. " +
+      "<b>100%</b> shows real pixels, as Apply will produce them. You can also double-click the preview.</p>";
+   this.zoom_Combo.onItemSelected = function (index)
+   {
+      dlg.setZoom(index);
+   };
+
+   this.quality_Combo = new ComboBox(this);
+   for (var qi = 0; qi < PREVIEW_QUALITY_NAMES.length; ++qi)
+      this.quality_Combo.addItem(PREVIEW_QUALITY_NAMES[qi]);
+   this.quality_Combo.currentItem = this.previewQuality;
+   this.quality_Combo.toolTip = "<p><b>Sharp</b> (recommended) computes the preview at your screen's full resolution. " +
+      "<b>Balanced</b> (70%) and <b>Fast</b> (50%) compute fewer pixels and enlarge them, so they update faster " +
+      "on slow computers but look softer.</p>";
+   this.quality_Combo.onItemSelected = function (index) { dlg.previewQuality = index; dlg.schedulePreview(true); };
 
    this.live_CheckBox = new CheckBox(this);
    this.live_CheckBox.text = "Live update";
@@ -1986,14 +2212,25 @@ function NarrowbandDialog()
    this.previewStatus_Label.text = "";
    this.previewStatus_Label.textAlignment = TextAlign_Left | TextAlign_VertCenter;
 
+   function topLabel(dialog, text)
+   {
+      var l = new Label(dialog);
+      l.text = text;
+      l.textAlignment = TextAlign_Right | TextAlign_VertCenter;
+      return l;
+   }
+
    var previewTop = new HorizontalSizer;
    previewTop.spacing = 6;
-   var showLabel = new Label(this);
-   showLabel.text = "Show:";
-   showLabel.textAlignment = TextAlign_Right | TextAlign_VertCenter;
-   previewTop.add(showLabel);
+   previewTop.add(topLabel(this, "Show:"));
    previewTop.add(this.show_Combo);
-   previewTop.addSpacing(12);
+   previewTop.addSpacing(10);
+   previewTop.add(topLabel(this, "Zoom:"));
+   previewTop.add(this.zoom_Combo);
+   previewTop.addSpacing(10);
+   previewTop.add(topLabel(this, "Quality:"));
+   previewTop.add(this.quality_Combo);
+   previewTop.addSpacing(10);
    previewTop.add(this.live_CheckBox);
    previewTop.addStretch();
    previewTop.add(this.refresh_Button);
@@ -2025,31 +2262,53 @@ function NarrowbandDialog()
    {
       var t0 = Date.now();
       var temp = [];
+      dlg.previewTimer.stop();
       try
       {
          if (!isValidView(data.ha) || !isValidView(data.oiii))
          {
             dlg.previewBitmap = null;
+            dlg.previewInfo = null;
             dlg.previewMessage = "Select the Ha and OIII images.";
             dlg.preview_Control.update();
             return;
          }
-         if (dlg.previewEngine.sources == null)
+         if (dlg.previewInfo == null)
          {
             dlg.previewMessage = "Measuring the images (first time only)...";
             dlg.preview_Control.update();
             processEvents();
          }
-         var res = dlg.previewEngine.compute(data, dlg.previewShow);
+         // Preview area in physical (device) pixels
+         var pw = dlg.preview_Control.width, ph = dlg.preview_Control.height;
+         var q = dlg.previewZoom == 0 ? PREVIEW_QUALITY[dlg.previewQuality] : 1;
+         var res = dlg.previewEngine.compute(data, dlg.previewShow, pw * q, ph * q,
+                                             dlg.previewZoom, dlg.previewCenter);
          temp = res.temp;
          dlg.previewBitmap = imageToBitmap(View.viewById(res.id));
+         dlg.previewInfo = res.info;
+         dlg.drag = null;
+         if (res.info.zoom == 1)
+            dlg.previewCenter = res.info.center;
          var warn = dlg.previewShow == SHOW_BLEND ? blendWarning(data) : "";
          dlg.previewMessage = warn ? "Warning: " + warn : "";
-         dlg.previewStatus_Label.text = format("Preview at 1:%d  (%.1f s)", dlg.previewEngine.factor, (Date.now() - t0) / 1000);
+         var secs = (Date.now() - t0) / 1000;
+         if (res.info.zoom == 1)
+            dlg.previewStatus_Label.text = format("Preview at 100%% (1:1), %dx%d pixels - drag to pan, double-click to fit  (%.1f s)",
+                                                  res.info.w, res.info.h, secs);
+         else
+         {
+            var img = data.ha.image;
+            var eff = Math.max(1, img.width / pw, img.height / ph);
+            dlg.previewStatus_Label.text = format("Preview fit to screen at 1:%.1f - double-click to zoom to 100%% there  (%.1f s)",
+                                                  eff, secs);
+         }
       }
       catch (e)
       {
          dlg.previewBitmap = null;
+         dlg.previewInfo = null;
+         dlg.drag = null;
          dlg.previewMessage = "Preview error: " + e.message;
          dlg.previewStatus_Label.text = "";
       }

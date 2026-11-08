@@ -1,13 +1,36 @@
 # Changelog
 
-## 1.0 (2026-11-07)
+## PixInsight 1.1
 
-First public release.
+- Sharper live preview: computed at the preview panel's real screen resolution (including Retina / 4K screens) and recomputed when the window is resized.
+- **Zoom**: Fit or 100% (1:1). Double-click the preview to zoom to 100% at that point and again to go back to Fit; drag to pan at 100%. The 100% view matches Apply pixel for pixel, including ratio color, which keeps the whole image's color balance.
+- **Quality**: Sharp (recommended), Balanced (70%) or Fast (50%) for slower computers. Affects only the preview.
+- American spelling throughout (color, center, gray). Process icons saved with 1.0 still load.
+- Help guide: updated Preview section.
 
-- **Stretch:** black point per line from the real sky background (with a clipping guard for nebulae that fill the frame), midtone stretch to a target median, line linking (0% = equal medians, 100% = true relative brightness), neutral background, contrast S-curve and highlight protection for bright cores.
-- **Blend:** Foraxx (dynamic) HOO / SHO, ratio colour (presets, automatic balance, colour smoothing), classic palettes with editable weights, and custom PixelMath.
-- **Finishing:** saturation, green reduction (SCNR-style) and Foraxx finishing (hue and saturation curves).
-- **Live preview** using the same settings and measurements as Apply.
-- **Reset all sliders** and a built-in **Help** guide with recipes and troubleshooting.
+## Siril 1.2
 
-Versions 0.1 to 0.5.3 were development builds.
+- Sharper live preview at your screen's full resolution, recomputed on resize.
+- Zoom Fit / 100% (1:1) with double-click and drag to pan; Quality Sharp / Balanced / Fast.
+- Faster Foraxx finishing (curve lookup tables).
+- American spelling throughout (color, center, gray).
+
+## Siril 1.1
+
+- Interface rebuilt with PyQt6, following Siril's script guidelines.
+- Custom expressions may use comparisons (`<`, `>`, `=`).
+- Settings are checked and clamped when loaded.
+- Help guide list numbering fixed.
+
+## Siril 1.0.1
+
+- Fixed white-on-white text on macOS.
+
+## Siril 1.0
+
+- First Siril version: same stretch and blend engine as PixInsight 1.0, reading linear FITS files.
+
+## PixInsight 1.0
+
+- First public release: sky-based stretch with clipping guard, line linking, neutral background, contrast and highlight protection; Foraxx, ratio color, classic palettes and custom PixelMath; saturation, green reduction and Foraxx finishing; live preview, Reset all sliders and a built-in Help guide.
+- Packaged as a PixInsight update repository.

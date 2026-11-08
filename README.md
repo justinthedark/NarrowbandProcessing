@@ -1,11 +1,13 @@
 # NarrowbandProcessing
 
-A PixInsight script that stretches and blends narrowband line images (Hα, OIII and optional SII) into colour images: Foraxx, HOO, SHO and more, with a live preview.
+A script for **PixInsight** and **Siril** that stretches and blends narrowband line images (Hα, OIII and optional SII) into color images: Foraxx, HOO, SHO and more, with a live preview.
+
+Both versions use the same processing and give the same results.
 
 It works with:
 
 - **Mono cameras** with separate Hα / OIII / SII filters: use your stacked masters directly.
-- **One-shot colour cameras with dual-band filters** (L-eNhance, L-eXtreme, ...): extract the lines first with DBXtract, then open NarrowbandProcessing. It picks up the `_HA`, `_OIII` and `_SII` images automatically.
+- **One-shot color cameras with dual-band filters** (L-eNhance, L-eXtreme, ...): extract the lines first (DBXtract in PixInsight, or Siril's Ha/OIII extraction), then open NarrowbandProcessing. In PixInsight it picks up the `_HA`, `_OIII` and `_SII` images automatically.
 
 The input images must be **linear** (not stretched yet) and registered to each other.
 
@@ -18,7 +20,7 @@ The input images must be **linear** (not stretched yet) and registered to each o
 
 **Blend**
 - **Foraxx (dynamic):** HOO, or SHO when SII is selected.
-- **Ratio colour:** colour from the OIII/Hα ratio, with presets such as Gold + blue core, automatic balance and colour smoothing.
+- **Ratio color:** color from the OIII/Hα ratio, with presets such as Gold + blue core, automatic balance and color smoothing.
 - **Classic palettes:** HOO, SHO, HSO and more, with editable weights.
 - **Custom PixelMath** using H, O and S.
 - Saturation, green reduction (SCNR-style) and **Foraxx finishing** (hue and saturation curves).
@@ -45,15 +47,29 @@ Future versions then arrive through **Check for Updates** automatically.
 1. Download `src/scripts/NarrowbandProcessing/NarrowbandProcessing.js`.
 2. In PixInsight, use **Script > Feature Scripts > Add**, choose the folder containing the file, and click **Done**. The script then appears under **Script > Utilities**.
 
+### Siril (1.4 or newer)
+
+1. Download [`siril/NarrowbandProcessing.py`](siril/NarrowbandProcessing.py) and put it in a folder of your choice (for example `Documents/Siril scripts`).
+2. In Siril, open **Preferences > Scripts** and add that folder to the script folders.
+3. The script appears in Siril's **Scripts** menu (restart Siril or refresh the script list if needed).
+4. The first run installs numpy, scipy and PyQt6 automatically if they are missing.
+
+In Siril, choose the linear Hα, OIII and SII FITS files in the script's window. **Apply** saves the result (`NB_Foraxx.fit`, `NB_Ratio.fit`, ...) in Siril's working folder and opens it.
+
 ## Quick start
 
-1. Open your linear Hα and OIII images (and SII if you have it).
-2. Run **Script > Utilities > NarrowbandProcessing**.
+1. Open your linear Hα and OIII images (and SII if you have it). In Siril, choose them as FITS files in the script's window instead.
+2. Run **Script > Utilities > NarrowbandProcessing** (PixInsight) or **Scripts > NarrowbandProcessing** (Siril).
 3. Choose a blend **Mode**. Foraxx is a good starting point.
-4. Adjust Contrast, Highlight protection and Saturation while watching the preview.
+4. Adjust Contrast, Highlight protection and Saturation while watching the preview. Double-click the preview to check real pixels at 100%.
 5. Click **Apply**.
 
 Click **Help** in the script for a full guide to every setting.
+
+## Differences between the versions
+
+- PixInsight works on open images; Siril reads linear FITS files that you choose in the script's window (32-bit float or 16/32-bit integer FITS; compressed FITS is not supported).
+- Siril's Foraxx finishing applies the same curve settings in HSV space, so colors can differ very slightly from PixInsight's.
 
 ## Credits
 
