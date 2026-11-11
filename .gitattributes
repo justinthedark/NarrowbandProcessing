@@ -1,0 +1,5 @@
+*.zip binary
+*.js text eol=lf
+*.xri text eol=lf
+*.py text eol=lf
+*.xsgn binary
