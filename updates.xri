@@ -5,12 +5,13 @@
       <p>Copyright (C) 2026 Justin Pickens. Released under the GNU General Public License v3.</p>
    </description>
    <platform os="all" arch="noarch" version="1.8.9:2.9.9">
-      <package fileName="NarrowbandProcessing-1.1.zip" sha1="d0c59078d8f2554be370f85befe040f2931ce29f" type="script" releaseDate="20261108">
-         <title>NarrowbandProcessing 1.1</title>
+      <package fileName="NarrowbandProcessing-1.1.1.zip" sha1="69c8cbbf7a23980f9255812175076496eb97f2f9" type="script" releaseDate="20261111">
+         <title>NarrowbandProcessing 1.1.1</title>
          <description>
-            <p>Sharper preview at your screen's full resolution, Zoom Fit / 100% (double-click, drag to pan), Quality Sharp / Balanced / Fast, and American spelling (color, center, gray).</p>
+            <p>Digitally signed release. No changes to processing.</p>
             <p>After installing, restart PixInsight and open Script &gt; Utilities &gt; NarrowbandProcessing.</p>
          </description>
       </package>
    </platform>
 </xri>
+<Signature developerId="Justinthedark" timestamp="2026-11-11T19:20:48.118Z" encoding="Base64">hiaHd31bfMPRVFkQfwfzujzwUpsThwKl7RvlHBqFXoGULORGxoYFWB2k/gMWY2MNdokZQQpHwhp6ypuQGTB0BQ==</Signature>

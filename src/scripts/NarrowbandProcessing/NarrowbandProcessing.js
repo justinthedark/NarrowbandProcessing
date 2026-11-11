@@ -1,5 +1,5 @@
 /******************************************************************************
- * NarrowbandProcessing.js - version 1.1 (November 2026)
+ * NarrowbandProcessing.js - version 1.1.1 (November 2026)
  *
  * Stretching and blending of narrowband line images (Ha, OIII and optional
  * SII) into color images, with a live preview.
@@ -35,6 +35,8 @@
  *               with double-click and drag to pan; Quality Sharp / Balanced
  *               / Fast. American spelling (color, center, gray); process
  *               icons saved by 1.0 still load.
+ *  1.1.1        Digitally signed (Certified PixInsight Developer); no
+ *               changes to processing.
  *
  * Copyright (C) 2026 Justin Pickens
  *
@@ -67,7 +69,7 @@
 #include <pjsr/StdCursor.jsh>
 #include <pjsr/UndoFlag.jsh>
 
-#define VERSION "1.1"
+#define VERSION "1.1.1"
 #define TITLE "NarrowbandProcessing"
 
 // Line indices

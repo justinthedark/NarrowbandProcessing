@@ -1,5 +1,10 @@
 # Changelog
 
+## PixInsight 1.1.1
+
+- Digitally signed: the script and its update repository are now signed with a Certified PixInsight Developer signature, so PixInsight no longer shows the unsigned-repository warning (once your PixInsight includes the latest list of certified developers).
+- No changes to processing.
+
 ## PixInsight 1.1
 
 - Sharper live preview: computed at the preview panel's real screen resolution (including Retina / 4K screens) and recomputed when the window is resized.
